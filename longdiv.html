@@ -284,8 +284,6 @@
                 },
 
 
-
-
                 _cont: false,
 
                 get canContinue() {
@@ -324,37 +322,13 @@
                     if (this._cont = (this.currentTarget === m) && this._width > 0 && (!isFinite(this._decRem) || this.decimalUpgraded)) {
 
                         this._zn = getDigitByWidth(this.dividend, this._width - pw) === 0;
-
-
                         this.__dvdn -= m > 0 ? m * Math.pow(10, this._width - pw) : 0;
-
-                        //if (x !== 0) {
-                        //    let f = Math.pow(10, this._width - pw);    
-                        //    this.__dvdn -= m * f;
-                        //    //this._width = rm === 0 && this._zn ? this._width -= 2: getWidth(this.__dvdn);
-                        //}
-
-                        //let dovr = this._width === 1 && rm > 0;
-                        
-                        //let znn = false; //try 121/3 325/8
-                       
-                        //this._rem_margin_width -= getWidth(lc); // full range decrease 
-                        //this._rem_margin_width += rm > 0 ? b : 0; // reduce if necessary
-                        //this._rem_margin_width += this.__dvdn === 0 || dovr ? 1 : 0; //reduce if necessary
-
                         this._width -= getWidth(lc); // full range decrease 
                         this._width += rm > 0 ? b : 0; // reduce if necessary
  
-
-                        //(rm > 0 || this._width === 0 ? 0 : 1)
-                        //this._rem_margin_width -= getWidth(m) + (this._width > 0 ? 1 : 0);
-                        //this._rem_margin_width += rm > 0 ? (b = getWidth(rm) + 1) : 0; // align with previous higher carries
-                        
-                        debugger;
                         this._prem = rm; //flag for zero result divide
                         //we take next number one by one, so .current should recalculate display value from arithmetic value
                         rm = this.current;
-
 
                         //TODO: check these logic! to
                         if (this._prem !== 0 && (this.decimalUpgraded || (this._width === getWidth(rm) && rm <= this.divisor)))
@@ -374,24 +348,13 @@
 
 
                     lof = this.__dvdn === 0 && !this._zn ? this._width + 1 : 0;
-
-                    //let d = this.isDecimal ? (getWidth(this.dividend) - this._width - 1) : 0; //inspect this
-
-                    ////gp.clear();
-                    //gp.writeln(this._dupgrd_cnt + d);
-
-                    //gp.clear();
-                    //gp.writeln(div);
-                    //gp.writeln(this);
-
                     return {
                         multiple: m,
                         mMargin: (this.decimalUpgraded ? this._dupgrd_cnt : 0) + (pm - moff),
                         mWidth: pw,
 
                         remainder: rm,
-                        //rMargin: this.decimalUpgraded ? (this._dupgrd_cnt + d + lof) - (this.canContinue ? 0 : (roff - lof + 1)) : (getWidth(this.dividend) - this._width - lof) - roff,
-
+                        
                         rMargin: (this.decimalUpgraded ? this._dupgrd_cnt : 0) + ((getWidth(this.dividend) - this._width - lof) - roff),
                         rWidth: getWidth(this.current)
                     } 
