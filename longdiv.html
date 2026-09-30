@@ -65,11 +65,10 @@
             border-left: 1px solid black;
         }
 
-        .smcnt {
+        #smcnt {
             display: flex;
             flex-direction: column;
             width: auto;
-            padding-top: 2.25ch; /*adjust here for font scaling*/
         }
 
 
@@ -83,10 +82,10 @@
         }
 
   
-        #sgn {
-            padding-left: 0.4ch; /*adjust here for font scaling*/
-            padding-top: 4.5ch; /*adjust here for font scaling*/
-        }
+        /*#sgn {
+            padding-left: 0.4ch;*/ /*adjust here for font scaling*/
+            /*padding-top: 4.5ch;*/ /*adjust here for font scaling*/
+        /*}*/
 
 
         #snmb, #divisor {
@@ -112,10 +111,9 @@
             display: flex;
         }
 
-
     </style>
 
-    <script type="text/javascript" src="log.js"></script>
+    <!--<script type="text/javascript" src="log.js"></script>-->
 
     <script type="text/javascript">
 
@@ -177,7 +175,9 @@
             const dvdn = document.getElementById("dividend");
             const cr = document.getElementById("carrier");
             const dbtn = document.getElementById("slcnt");
-            
+
+            document.getElementById("smcnt").style.paddingTop = result.getBoundingClientRect().height + "px";
+            dispS.style.paddingTop = result.getBoundingClientRect().height + dvdn.getBoundingClientRect().height + "px";
 
             //const log_rm = createLogger("rem. width", {
             //    fontsize: "0.7em",
@@ -218,7 +218,7 @@
                 div.style.marginLeft = ltrSpacing + o * (1 + ltrSpacing) + "ch"; // base position,
                 div.textContent = n.toString().padStart(w, " ");
 
-                sgn.style.marginLeft = "3px";
+                sgn.style.marginLeft = "8px";
                 sgn.textContent = " ";
                 sgn.classList.add(s ? "lineDown_s" : null);
 
@@ -328,13 +328,8 @@
           
                         this._width -= getWidth(lc); // full range decrease 
                         this._width += rm > 0 ? b : 0; // reduce if necessary
- 
 
-                        //(rm > 0 || this._width === 0 ? 0 : 1)
-                        //this._rem_margin_width -= getWidth(m) + (this._width > 0 ? 1 : 0);
-                        //this._rem_margin_width += rm > 0 ? (b = getWidth(rm) + 1) : 0; // align with previous higher carries
                         
-                        debugger;
                         this._prem = rm; //flag for zero result divide
                         //we take next number one by one, so .current should recalculate display value from arithmetic value
                         rm = this.current;
@@ -358,14 +353,7 @@
 
                     lof = this.__dvdn === 0 && !this._zn ? this._width + 1 : 0;
 
-                    //let d = this.isDecimal ? (getWidth(this.dividend) - this._width - 1) : 0; //inspect this
-
-                    ////gp.clear();
-                    //gp.writeln(this._dupgrd_cnt + d);
-
-                    //gp.clear();
-                    //gp.writeln(div);
-                    //gp.writeln(this);
+   
 
                     return {
                         multiple: m,
@@ -522,10 +510,9 @@
 
                     //perfom comma upgrade here (UI)
 
-                    
-                    if (div.canContinue && div.isDecimal) {
+                    if (div.canContinue && (div.decimalUpgraded || div.isDecimal) ) {
                         let w = getStyleValue(dispN, "width");
-                        dispN.lastChild.textContent += "0";
+                        dispN.lastChild.textContent += ctx.remainder > 0 ? "0" : "";
                         
                         if (!div.decimalUpgraded) {
                             stdata.push(null); //dummy
@@ -633,11 +620,11 @@
         <div style="display:flex; flex-direction:column; row-gap:1ch">
             <div class="ctrl" style="cursor:move; padding-left:0.5ch" id="slcnt">&#183;</div>
             <div class="ctrl" style="padding-left:0.5ch" id="ruler">&#124;</div>
-            <div class="ctrl" id="rand" style="padding-left:0.3ch">&#10227;</div>
+            <div class="ctrl" id="rand" style="padding-left:0.5ch">#</div>
             <div class="ctrl" id="dec" style="font-size:0.8em">.0</div>
         </div>
         <div id="mcnt">
-            <div class="smcnt">
+            <div id="smcnt">
                 <div style="display:flex">
                     <div id="divisor" class="lineUp_t">-</div>
                     <div>/</div>
@@ -648,8 +635,7 @@
                     <input id="result" type="text" placeholder=">" />
                     <div id="dividend" class="lineUp_s">---</div>
                 </div>
-                <div id="sgn">
-                </div>
+                <div id="sgn"></div>
             </div>
         </div>
     </div>
