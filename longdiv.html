@@ -1,0 +1,671 @@
+﻿<!DOCTYPE html> 
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=0.7" />
+    <title>Long Division Engine</title>
+
+    <style>
+        html, body {
+            /*background-color: #353535;*/
+            font-family: monospace;
+            /*color: #b9b9b9;*/
+            font-size: 1.5em; /*adjust here for font scaling*/
+           
+        }
+        
+        .lineUp_s {
+            border-top: 2px solid; /*adjust here for font scaling*/
+        }
+
+        .lineUp_t {
+            border-top: 2px solid transparent; /*adjust here for font scaling*/
+        }
+
+        .lineDown_s {
+            border-bottom: 2px solid; /*adjust here for font scaling*/
+        }
+
+
+/*        .lineLeft_t {
+            height: 100%;
+            width: 1.25ch;
+            border-left: 1px solid transparent;
+        }
+*/
+
+        #result {
+            letter-spacing: 0.24ch;
+            font-size: 1em; /*adjust here for font scaling*/
+            /*            appearance: none;
+            -webkit-appearance: none;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            box-shadow: none;*/
+
+            -webkit-appearance: none;
+            border: none;
+            outline: none;
+            background: transparent;
+            box-shadow: none;
+            font-family: monospace;
+            /*color: #b9b9b9;*/
+            /*0.6 em increment per divider*/
+            margin-left: 0.2ch;
+            width: 100%;
+            /*margin-left: 0.9em;*/
+        }
+
+
+        #mcnt {
+            display: flex;
+            width: auto;
+            padding: 1vw 0 2vw 3vw;
+            border-left: 1px solid black;
+        }
+
+        .smcnt {
+            display: flex;
+            flex-direction: column;
+            width: auto;
+            padding-top: 2.25ch; /*adjust here for font scaling*/
+        }
+
+
+        .ctrl {
+            user-select: none;
+            margin: 0 5vw 0 5vw;
+        }
+
+        .ctrl:hover {
+            filter: invert(0.8)
+        }
+
+  
+        #sgn {
+            padding-left: 0.4ch; /*adjust here for font scaling*/
+            padding-top: 4.5ch; /*adjust here for font scaling*/
+        }
+
+
+        #snmb, #divisor {
+            letter-spacing: 0.25ch;
+        }
+
+        #dividend {
+            margin-left: 0.25ch;
+        }
+        
+        .lineLeft_s {
+            
+            height: 100%;
+            width: 1.25ch;
+            border-left: 1px dotted grey;
+        }
+
+        #rmsk {
+            padding-top: 0.5ch;
+            pointer-events: none;
+            position: absolute;
+            user-select: none;
+            display: flex;
+        }
+
+
+    </style>
+
+    <!--<script type="text/javascript" src="log.js"></script>-->
+
+    <script type="text/javascript">
+
+        function intRand(max = Number.MAX_SAFE_INTEGER) {
+            return Math.floor(Math.random() * max) + 1;
+        }
+
+        function iPrompt(ask, prev) {
+            let ret = null;
+            return (ret = prompt(ask, isFinite(prev) ? prev : "")?.split("/")) ?
+                [Number.parseInt(ret[0]), ret.length >= 2 ? Number.parseInt(ret[1]) : NaN] :
+                prev;
+        }
+
+        /**
+         * return in width of tens.. 100 -> width 2
+         * @param v {number} any value
+         * @returns {number} 
+         */
+        function getWidth(v) {
+            let w = v < 0 ? 1 : 0;
+            v = Math.abs(v);
+            while ((v = Math.trunc(v / 10)) > 0) w++;
+            return w + 1;
+        }
+
+
+        function getDigitByWidth(v, w) {
+            let s = v, ret = v;
+            for (let i = 0; i < w; i++, s = Math.trunc(s / 10), ret = v - (s * 10), v = s);
+            return ret;
+        }
+
+        /**
+         * css style width
+         * @param e {HTMLElement}
+         */
+        function getStyleValue(e, prop) {
+            let p = e.style[prop];
+            p = p.length === 0 ? getComputedStyle(e)[prop] : p;
+            let u = p.search(/[A-Za-z]/);
+
+            return {
+                value: JSON.parse(p.substring(0, u)),
+                unit: p.substring(u)
+            }
+        }
+
+
+
+
+        function init() {
+            const ltrSpacing = 0.25;
+            const dispN = document.getElementById("snmb");
+            const dispS = document.getElementById("sgn");
+            const result = document.getElementById("result");
+
+            const dv = document.getElementById("divisor");
+            const dvdn = document.getElementById("dividend");
+            const cr = document.getElementById("carrier");
+            const dbtn = document.getElementById("slcnt");
+            
+
+            //const log_rm = createLogger("rem. width", {
+            //    fontsize: "0.7em",
+            //    left: "35vw",
+            //    top: "5vh"
+            //});
+
+            //const log_rv = createLogger("rem. value", {
+            //    fontsize: "0.7em",
+            //    left: "50vw",
+            //    top: "5vh"
+            //});
+
+            //const log_cv = createLogger("c. value", {
+            //    fontsize: "0.7em",
+            //    left: "65vw",
+            //    top: "5vh"
+            //});
+
+
+            //const gp = createLogger("GP.", {
+            //    fontsize: "0.7em",
+            //    left: "35vw",
+            //    top: "5vh"
+            //});
+
+
+            //gp.hidden = log_cv.hidden = log_rv.hidden = log_rm.hidden = true;
+
+
+            function appendDisplay(o, w, n, s) {
+
+                const div = document.createElement("div");
+                const sgn = document.createElement("div");
+
+                div.classList.add(s ? "lineDown_s" : null);
+                //div.style.marginLeft = (n < 0 ? o - getWidth(-n) - (w > 1 ? 0 : 1) : o) + "ch"; // base position
+                div.style.marginLeft = ltrSpacing + o * (1 + ltrSpacing) + "ch"; // base position,
+                div.textContent = n.toString().padStart(w, " ");
+
+                sgn.style.marginLeft = "3px";
+                sgn.textContent = " ";
+                sgn.classList.add(s ? "lineDown_s" : null);
+
+                div.style.whiteSpace = sgn.style.whiteSpace = "pre-wrap";
+
+                dispN.appendChild(div);
+                dispS.appendChild(sgn);
+            }
+
+            function removeStage() {
+                dispN.removeChild(dispN.lastChild);
+                dispS.removeChild(dispS.lastChild);
+                dispN.removeChild(dispN.lastChild);
+                dispS.removeChild(dispS.lastChild);
+            }
+
+            const div = {
+                divisor: NaN,
+
+                __dvdn: NaN,
+                _dvdn: NaN,
+                _width: NaN,
+
+                get dividend() {
+                    return this._dvdn;
+                },
+
+                set dividend(v) {
+                    this._cont = true;
+                    this.__dvdn = this._dvdn = v;
+                    this._width = getWidth(v);
+                    this._prem = NaN;
+                    this._decRem = NaN;
+                    this._zn = false;
+                },
+
+                get divisible() {
+                    return isFinite(this.dividend) && isFinite(this.divisor) && this.divisor !== 0; /*&& this.dividend > this.divisor;*/
+                },
+
+
+                /**
+                 * current number to be divided (part of whole)
+                 */
+                get current() {
+                    //try 25208 / 4, the mid zero will break current() calculation and promote 8 instead (not 0)
+                    let w = this._width, c = 0;
+
+                    if (isFinite(this._prem)) {
+                        for (let tw = getWidth(this._prem) + 1, i = 0; i <= tw && c < this.divisor && w >= 0; i++, c = Math.trunc(this.__dvdn / Math.pow(10, w--)));
+                    } else while ((c = Math.trunc(this.__dvdn / Math.pow(10, w))) < this.divisor && w-- > 0); //first starter
+                    
+
+                    return this._prem === 0 && this._zn ? 0 : this._prem === 0 ? Math.trunc(c / Math.pow(10, getWidth(c) - 1)) : c;
+                },
+
+
+                /**
+                 * multiplication target, i.e. closest result to current target
+                 * */
+                get currentTarget() {
+                    return this._prem === 0 && this._zn ? 0 : Math.trunc((this.current / this.divisor)) * this.divisor;
+                },
+
+
+
+
+                _cont: false,
+
+                get canContinue() {
+                    return this._cont && this.divisible ;
+                },
+                    
+                _prem: NaN,
+                _decRem: NaN,
+                _zn: false,
+
+                decimalEnabled: false,
+
+                get isDecimal() {
+                    return this.decimalEnabled && isFinite(this._decRem);
+                },
+
+                moveStage(x) {
+                
+
+                    //MAGIC, PATCHWORK, NON ARCHITECTURAL, 
+                    //Arief Laksono © 30/09/26 00:13:12 
+                    let lof = (this.__dvdn === 0 && !this._zn ? 1 : 0);
+                    let b = 0;
+                    let m = x * this.divisor;
+                    let lc = this.current;
+                    let rm = lc - m;
+                  
+                    let pm = getWidth(this.dividend) - this._width - lof;
+                    let pw = getWidth(lc) ; //this is still unclear, prev this.currentTarget
+
+                    let moff = (b = getWidth(m) > pw) ? b : 0;
+                    let roff = (b = getWidth(rm)) > pw ? b - pw : 0;
+
+
+                    
+                    if (this._cont = (this.currentTarget === m) && this._width > 0 && (!isFinite(this._decRem) || this.decimalUpgraded)) {
+
+                        this._zn = getDigitByWidth(this.dividend, this._width - pw) === 0;
+
+
+                        this.__dvdn -= m > 0 ? m * Math.pow(10, this._width - pw) : 0;
+
+                        //if (x !== 0) {
+                        //    let f = Math.pow(10, this._width - pw);    
+                        //    this.__dvdn -= m * f;
+                        //    //this._width = rm === 0 && this._zn ? this._width -= 2: getWidth(this.__dvdn);
+                        //}
+
+                        //let dovr = this._width === 1 && rm > 0;
+                        
+                        //let znn = false; //try 121/3 325/8
+                       
+                        //this._rem_margin_width -= getWidth(lc); // full range decrease 
+                        //this._rem_margin_width += rm > 0 ? b : 0; // reduce if necessary
+                        //this._rem_margin_width += this.__dvdn === 0 || dovr ? 1 : 0; //reduce if necessary
+
+                        this._width -= getWidth(lc); // full range decrease 
+                        this._width += rm > 0 ? b : 0; // reduce if necessary
+ 
+
+                        //(rm > 0 || this._width === 0 ? 0 : 1)
+                        //this._rem_margin_width -= getWidth(m) + (this._width > 0 ? 1 : 0);
+                        //this._rem_margin_width += rm > 0 ? (b = getWidth(rm) + 1) : 0; // align with previous higher carries
+                        
+                        debugger;
+                        this._prem = rm; //flag for zero result divide
+                        //we take next number one by one, so .current should recalculate display value from arithmetic value
+                        rm = this.current;
+
+
+                        //TODO: check these logic! to
+                        if (this._prem !== 0 && (this.decimalUpgraded || (this._width === getWidth(rm) && rm <= this.divisor)))
+                        //if (this._width === pw && this._prem !== 0)
+
+                        //if (this._width === 0 && this._prem !== 0)
+                            rm = this._decRem = this._prem;
+                        else
+                            this._decRem = NaN;
+
+                      
+                    } else {
+                
+                        
+                        this._prem = NaN;
+                    }
+
+
+                    lof = this.__dvdn === 0 && !this._zn ? this._width + 1 : 0;
+
+                    //let d = this.isDecimal ? (getWidth(this.dividend) - this._width - 1) : 0; //inspect this
+
+                    ////gp.clear();
+                    //gp.writeln(this._dupgrd_cnt + d);
+
+                    //gp.clear();
+                    //gp.writeln(div);
+                    //gp.writeln(this);
+
+                    return {
+                        multiple: m,
+                        mMargin: (this.decimalUpgraded ? this._dupgrd_cnt : 0) + (pm - moff),
+                        mWidth: pw,
+
+                        remainder: rm,
+                        //rMargin: this.decimalUpgraded ? (this._dupgrd_cnt + d + lof) - (this.canContinue ? 0 : (roff - lof + 1)) : (getWidth(this.dividend) - this._width - lof) - roff,
+
+                        rMargin: (this.decimalUpgraded ? this._dupgrd_cnt : 0) + ((getWidth(this.dividend) - this._width - lof) - roff),
+                        rWidth: getWidth(this.current)
+                    } 
+                },
+
+                    //TODO: test number
+                    //111 / 3
+                    //10/9,
+                    // 12344/2 , 
+                    // 3525 / 5
+                    // 35445 / 5
+                    //121 / 3
+                    //1000 / 5
+                    // 7472342/9
+                    // 23123/9
+                    // 632321/12
+                    // 25208 / 4
+                    //194548 / 25
+                    //423352364234 / 128
+                    //1000/999
+
+
+                _dupgrd_cnt: NaN,
+
+               
+                get decimalUpgraded() {
+                    return isFinite(this._dupgrd_cnt);
+                },
+
+                upgradeDecimal() {
+                    if (this.isDecimal) {
+                        let b = (getWidth(this.dividend) - this._width);
+                        this.dividend = this._prem * 10;
+                        this._dupgrd_cnt = this.decimalUpgraded ? (this._dupgrd_cnt + b) : b;
+                    }
+                },
+
+                stageData() {
+                    return Object.fromEntries(
+                        Object.getOwnPropertyNames(this).filter((v, i, a) => v.startsWith("_"))
+                            .map((v) => [v, this[v]]));
+                },
+
+                setStage(ob) {
+                    Object.getOwnPropertyNames(this).filter((v, i, a) => v.startsWith("_")).forEach((v) => this[v] = ob[v]);
+                }
+            }
+            
+            var stdata = [];
+
+            const rmsk = document.getElementById("rmsk");
+
+            function rmsk_pos_updt() {
+                if (!rmsk.hidden && div.divisible) {
+                    const rs = dispN.getBoundingClientRect();
+                    const r = dvdn.getBoundingClientRect();
+                    //const o = div.decimalUpgraded ? div._dupgrd_cnt + 3 : rmsk.ruler_width;
+                    //console.log(rmsk.style.top);
+                    rmsk.style.top = 87.1042 + "px";
+                    rmsk.style.left = r.x - 2 + "px";
+                    rmsk.style.width = rmsk.ruler_width * 1.25 + "ch";
+                    rmsk.style.height = (rs.height - 33) + "px";
+                    //rmsk.style.marginLeft = -0.125 + "ch";
+
+                    rmsk.innerHTML = "";
+
+                    for (let i = 0; i < rmsk.ruler_width; i++) {
+                        let rdiv = document.createElement("div");
+                        rdiv.classList.add("lineLeft_s");
+                        rmsk.appendChild(rdiv);
+                    }
+                }
+            }
+
+
+            dv.addEventListener("click", (e) => {
+                if (result.value.length === 0) {
+                    stdata = [];
+                    const ret = iPrompt("Pembagi?", div.divisor);
+                    div.divisor = Number.isInteger(ret) ? ret : ret[0];
+                    e.target.textContent = isFinite(div.divisor) ? div.divisor : "-";
+                    rmsk_pos_updt();
+                }
+                
+            });
+
+
+            function setDividend(ret) {
+                stdata = [];
+                div.dividend = Number.isInteger(ret) ? ret : ret[0];
+                div.divisor = isFinite(ret[1]) ? ret[1] : div.divisor;
+                dvdn.textContent = Number.isFinite(div.dividend) ? div.dividend : "---";
+                dispN.style.width = (dvdn.textContent.length * (1 + ltrSpacing)) + 1 + "ch"; //adjust width by chr len
+                dv.textContent = isFinite(div.divisor) ? div.divisor : "-";
+                rmsk["ruler_width"] = getWidth(div.dividend) + 1;
+                rmsk_pos_updt();
+            }
+
+            dvdn.addEventListener("click", (e) => {
+                if (result.value.length === 0) {
+                    setDividend(iPrompt("Angka?", div.dividend));
+                }
+            });
+
+
+
+            result.addEventListener("input", (e) => {
+
+                if (stdata.length === 0) {
+                    stdata = [div.stageData()];
+                }
+
+                if (!div.divisible) {
+                    e.target.value = null;
+                    return;
+                }
+
+
+                let r = e.target.value,
+                    c = r.charAt(r.length - 1),
+                    x = Number.parseInt(c);
+
+
+                if (r.length >= stdata.length && div.canContinue) {
+
+                    let ctx = div.moveStage(x);
+
+                    appendDisplay(
+                        ctx.mMargin,
+                        ctx.mWidth,
+                        ctx.multiple, 1);
+
+                    appendDisplay(
+                        ctx.rMargin,
+                        ctx.rWidth,
+                        ctx.remainder);
+
+                    
+                    //adjusting width can pad the value until it match the column
+                    //but if less (when higher subtraction still carries) we cant adjust the pad with negative
+
+                    //perfom comma upgrade here (UI)
+
+                    
+                    if (div.canContinue && div.isDecimal) {
+                        let w = getStyleValue(dispN, "width");
+                        dispN.lastChild.textContent += "0";
+                        
+                        if (!div.decimalUpgraded) {
+                            stdata.push(null); //dummy
+                            result.value += ","
+                            dispN.style.width = (getWidth(div.dividend) * (1 + ltrSpacing)) + 1 + w.unit; //reset width
+                        }
+
+                        div.upgradeDecimal();
+                        w = getStyleValue(dispN, "width");
+                        dispN.style.width = w.value + (1 + ltrSpacing) + w.unit;
+                    }
+                    
+
+                    stdata.push(div.stageData());
+
+                    
+                    
+                }
+                else if (stdata.length > 0) {
+
+               
+
+                    while (stdata.length > r.length + 1) {
+                        let c = stdata.pop()._cont;
+
+                        if (stdata[stdata.length - 1]) {
+                            removeStage();
+                            if (div.decimalUpgraded && c) {
+                                let w = getStyleValue(dispN, "width");
+                                dispN.style.width = (stdata.length === 1 ? w.value : (w.value - 1 - ltrSpacing)) + w.unit;
+                            }
+                        }
+                        else
+                        {
+                            stdata.pop();
+                            removeStage();
+                            e.target.value = r = r.substring(0, r.length - 1);
+                        }
+
+                    }
+
+                    
+                    div.setStage(stdata[stdata.length - 1]);
+
+                }
+
+                rmsk_pos_updt();
+                e.target.style.color = div.canContinue ? "black" : "red";
+
+
+                //gp.clear();
+                //gp.writeln(div);
+            });
+
+
+            document.getElementById("ruler").addEventListener("click", (e) => {
+                rmsk.style.display = (rmsk.hidden = !rmsk.hidden) ? "none" : "flex";
+                rmsk_pos_updt();
+            });
+
+            dbtn.addEventListener("pointerdown", (e) => dbtn.setPointerCapture(e.pointerId));
+            dbtn.addEventListener("pointerup", (e) => dbtn.releasePointerCapture(e.pointerId));
+            dbtn.addEventListener("pointermove", (e) => {
+                if (dbtn.hasPointerCapture(e.pointerId)) {
+                    cr.style.marginLeft = (e.clientX < 5 ? 5 : e.clientX) + "px";
+                    rmsk_pos_updt();
+                }
+            });
+
+            document.getElementById("dec").addEventListener("click", (e) => {
+                if (isFinite(div._decRem)) {
+
+                    if (!div.decimalUpgraded && div.canContinue &&(div.decimalEnabled = confirm("go decimal?")) && div.currentTarget === 0) {
+                        let p = result.value;
+                        result.value = p.substring(0, p.length - 1);
+                        result.dispatchEvent(new Event("input"));
+                        result.value = p;
+                        result.dispatchEvent(new Event("input"));
+                    }
+
+                } else div.decimalEnabled = confirm("go decimal?");
+            });
+
+            window.addEventListener("resize", (e) => rmsk_pos_updt());
+
+
+            document.getElementById("rand").addEventListener("click", (e) => {
+                result.value = '';
+                result.dispatchEvent(new Event("input"));
+                setDividend([intRand(10000), intRand(100)]);
+            });
+        
+
+        }
+
+ 
+
+    </script>
+
+</head>
+
+<body onload="init()">
+    <br />
+    <div id="carrier" style="display:flex">
+        <div style="display:flex; flex-direction:column; row-gap:1ch">
+            <div class="ctrl" style="cursor:move; padding-left:0.5ch" id="slcnt">&#183;</div>
+            <div class="ctrl" style="padding-left:0.5ch" id="ruler">&#124;</div>
+            <div class="ctrl" id="rand">&#127922;</div>
+            <div class="ctrl" id="dec">.0</div>
+        </div>
+        <div id="mcnt">
+            <div class="smcnt">
+                <div style="display:flex">
+                    <div id="divisor" class="lineUp_t">-</div>
+                    <div>/</div>
+                </div>
+            </div>
+            <div style="display: flex;">
+                <div id="snmb">
+                    <input id="result" type="text" placeholder=">" />
+                    <div id="dividend" class="lineUp_s">---</div>
+                </div>
+                <div id="sgn">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="rmsk" hidden="hidden"></div>
+</body>
+</html>

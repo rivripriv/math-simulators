@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=0.7" />
+    <title>LCM Engine</title>
+
+    <style>
+        html, body {
+            background-color: #353535;
+            font-family: monospace;
+            color: #b9b9b9;
+        }
+
+        h1 {
+            font-size: 5em;
+        }
+
+        button {
+            font-family: monospace;
+            transform: scale(1.8);
+        }
+
+        .cnt0 {
+            margin: 0 8vw 0 8vw;
+            display: flex;
+            align-items: center;
+            justify-content: space-evenly;
+        }
+
+        .cnt00 {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            grid-column-gap: 10vw;
+        }
+
+        .cnt1 {
+            display: flex;
+            width: 15vw;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            
+        }
+
+        .cnt2 {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            grid-column-gap: 1vw;
+        }
+
+        .tx0 {
+            font-family: monospace;
+            width: 2.5vw;
+            transform: scale(1.4);
+        }
+
+        .ck0 {
+            transform: scale(1.4);
+            border: none;
+            background: none;
+            font-family: monospace;
+            color: #c0fcae
+        }
+
+        .box {
+            width: 100%;
+            height: 40vh;
+            background-color: #9b9b9b;
+        }
+
+    </style>
+
+    <script type="text/javascript">
+
+        var ix = -1;
+        function addDisp() {
+            ix++;
+            let html = `
+        <div class="cnt1">
+            <div id="dBx${ix}" class="box"></div>
+            <br />
+            <div class="cnt2">
+                <input id="dTx${ix}" class="tx0" type="text" />
+                <button id="dCk${ix}" class="ck0">&#10006;</button>
+            </div>
+        </div>`
+
+            const tmp = document.createElement("template");
+            tmp.innerHTML = html.trim();
+
+            const ret = tmp.content.firstElementChild;
+
+            return {
+                hnd: 0,
+                all: ret,
+                box: tmp.content.querySelector("#dBx" + ix),
+                txt: tmp.content.querySelector("#dTx" + ix),
+                del: tmp.content.querySelector("#dCk" + ix)
+            }
+        }
+
+      
+        /**@type {HTMLDivElement}*/
+        var mcont;
+        var dispE = [];
+        var mhnd = 0;
+        const blink = 400;
+        /**@type {HTMLHeadingElement} */
+        var mh1;
+
+        function init() {
+
+            mcont = document.getElementById("mcont");
+            mh1 = document.getElementById("mtime");
+
+            mh1.addEventListener("click", (e) => mh1.textContent = "0000");
+
+            document.getElementById("start").addEventListener("click", (e) => {
+                let run = false;
+                e.target.textContent = (run = e.target.textContent === "START") ? "STOP" : "START";
+
+                dispE.forEach((v, i, a) => {
+                    if (run) {
+                        if (v) {
+                            v.hnd = window.setInterval(() => {
+                                let pcolo = v.box.style.backgroundColor;
+                                v.box.style.backgroundColor = "green";
+                                window.setTimeout(() => v.box.style.backgroundColor = pcolo, blink);
+                            }, Number.parseInt(v.txt.value) * 1000);
+                        }
+                    }
+                    else {
+                        if (v) window.clearInterval(v.hnd);
+                    }
+                });
+
+
+                if (run) {
+                    mhnd = window.setInterval(() => {
+                        mh1.textContent = (Number.parseInt(mh1.textContent) + 1).toString().padStart(4, "0");
+                        if (dispE.every((v, i, a) => !v || v.box.style.backgroundColor === "green")) {
+                            mh1.style.color = "green";
+                            window.setTimeout(() => mh1.style.color = "#b9b9b9", blink);
+                        }
+                    }, 1000);
+
+                } else window.clearInterval(mhnd);
+           
+            });
+
+        
+            document.getElementById("add").addEventListener("click", (e) => {
+                const nw = addDisp();
+                dispE.push(nw);
+                mcont.appendChild(nw.all);
+
+                nw.del.addEventListener("click", (ed) => {
+                    let i = dispE.indexOf(nw);
+                    window.clearInterval(dispE[i].hnd);
+                    mcont.removeChild(nw.all);
+                    dispE[i] = null;
+                });
+            });
+        }
+
+    </script>
+
+
+</head>
+
+<body onload="init()">
+    <br />
+    <h1 id="mtime" align="center">0000</h1>
+    <br />
+    <div id="mcont" class="cnt0">
+        <!--<div class="cnt1">
+            <div id="dBx" class="box"></div>
+            <br />
+            <div class="cnt2">
+                <input id="dTx" class="tx0" type="text" />
+                <button id="dCk" class="ck0">&#10006;</button>
+            </div>
+        </div>-->
+    </div>
+    <br /><br /><br /><br /><br />
+    <div class="cnt00">
+        <button id="add">+ADD+</button>
+        <button id="start">START</button>
+    </div>
+    <br />
+</body>
+</html>
